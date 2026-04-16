@@ -195,7 +195,7 @@
             { name: '雲耳金針蒸雞', icon: '🍄' }, { name: '栗子燜雞', icon: '🌰' }
         ],
         '魚類': [
-            { name: '煎三文魚扒/三文魚柳', icon: '🐟' }, { name: '鯇魚腩', icon: '🐡' }, { name: '倉魚', icon: '🐠' },
+            { name: '煎三文魚扒/柳', icon: '🐟' }, { name: '鯇魚腩', icon: '🐡' }, { name: '倉魚', icon: '🐠' },
             { name: '紅衫魚', icon: '🎏' }, { name: '黃花魚', icon: '🎣' }, { name: '鯖魚', icon: '🐟' }
         ],
         '蛋類': [
@@ -316,12 +316,16 @@
 
         localStorage.setItem('dinnerData_v4', JSON.stringify(data));
 
+        // 簡化版的傳送方式
         fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        }).then(() => console.log('雲端備份請求已發送'));
+            body: JSON.stringify(data) // 直接傳送字串
+        }).then(() => {
+            console.log('已嘗試同步至雲端');
+        }).catch(err => {
+            console.error('同步失敗：', err);
+        });
     }
 
  function loadData() {
