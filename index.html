@@ -324,17 +324,27 @@
         }).then(() => console.log('雲端備份請求已發送'));
     }
 
-    function loadData() {
-        fetch(SCRIPT_URL)
-        .then(response => response.json())
+ function loadData() {
+        // 加入時間戳記避免瀏覽器讀取舊快取
+        fetch(SCRIPT_URL + '?t=' + new Date().getTime())
+        .then(response => {
+            if (!response.ok) throw new Error('網路回應不正確');
+            return response.json();
+        })
         .then(data => {
             if (data && Object.keys(data).length > 0) {
-                for (let id in data) if (data[id]) updateSlot(id, data[id]);
+                // 清空目前畫面
+                document.querySelectorAll('.slot').forEach(slot => updateSlot(slot.id, null));
+                // 填入新資料
+                for (let id in data) {
+                    if (data[id]) updateSlot(id, data[id]);
+                }
                 localStorage.setItem('dinnerData_v4', JSON.stringify(data));
+                console.log('雲端資料同步完成');
             }
         })
         .catch(err => {
-            console.log('正在讀取本地存檔...');
+            console.log('無法連接雲端，讀取本地存檔...', err);
             const saved = localStorage.getItem('dinnerData_v4');
             if (saved) {
                 const localData = JSON.parse(saved);
