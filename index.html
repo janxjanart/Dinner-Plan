@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>晚餐規劃助手</title>
+    <title>每日晚餐小幫手</title>
     <style>
         :root {
             --bg-color: #FFF9F2;
@@ -61,7 +61,6 @@
 
         .btn-random { background-color: var(--primary-green); color: #2E7D32; }
         .btn-clear { background-color: var(--primary-pink); color: #C62828; }
-        .btn-sync { background-color: var(--primary-blue); color: #0277BD; }
 
         .planner-grid {
             display: grid;
@@ -122,7 +121,7 @@
             border-top-left-radius: 30px;
             border-top-right-radius: 30px;
             box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
-            max-height: 33.75vh; /* 45vh * 3/4 = 33.75vh */
+            max-height: 33.75vh;
             overflow-y: auto;
             z-index: 100;
         }
@@ -172,25 +171,31 @@
 
     <h1>🍴 每日晚餐小幫手</h1>
 
+    <div class="controls">
+        <button class="btn-random" onclick="randomize()">✨ 隨機安排</button>
+        <button class="btn-clear" onclick="clearAll()">🧹 清空全部</button>
+    </div>
+
     <div class="planner-grid" id="planner"></div>
     <div class="spacer"></div>
     <div class="food-menu" id="menu"></div>
 
 <script>
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby9UTauFeMxpSZKMlTrsmbbN3G7wj9NHD3lM_WGs_aJhbeVZ8FHdhFv2SSeBTGEEkE2LQ/exec'; // ⚠️ 記得替換這裡
+    // ⚠️ 請在此處貼上您的 Google Apps Script 網頁應用程式網址
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby9UTauFeMxpSZKMlTrsmbbN3G7wj9NHD3lM_WGs_aJhbeVZ8FHdhFv2SSeBTGEEkE2LQ/exec'; 
 
     const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
     
     const foodCategories = {
         '肉類': [
             { name: '黑椒豬扒', icon: '🥩' }, { name: '洋蔥豬扒', icon: '🧅' }, { name: '蒸排骨', icon: '🍲' },
-            { name: '豆豉蒸排骨', icon: '🥘' }, { name: '南瓜炆排骨', icon: '🎃' }, { name: '薯仔炆雞翼', icon: '🥔' },
+            { name: '豆豉蒸排骨', icon: '🥘' }, { name: '南瓜炆排骨', icon: '🎃' }, { name: '薯仔炆雞翼', icon: '🍗' },
             { name: '蒜蓉蜜糖雞翼', icon: '🍯' }, { name: '煎雞翼', icon: '🍗' }, { name: '瑞士汁雞翼', icon: '🍲' },
             { name: '栗子燜雞翼', icon: '🌰' }, { name: '蒸肉餅', icon: '🧆' }, { name: '煎肉餅', icon: '🍳' }, 
-            { name: '雲耳金針蒸雞', icon: '🍄' }
+            { name: '雲耳金針蒸雞', icon: '🍄' }, { name: '栗子燜雞', icon: '🌰' }
         ],
         '魚類': [
-            { name: '煎三文魚扒/柳', icon: '🐟' }, { name: '鯇魚腩', icon: '🐡' }, { name: '倉魚', icon: '🐠' },
+            { name: '煎三文魚扒/三文魚柳', icon: '🐟' }, { name: '鯇魚腩', icon: '🐡' }, { name: '倉魚', icon: '🐠' },
             { name: '紅衫魚', icon: '🎏' }, { name: '黃花魚', icon: '🎣' }, { name: '鯖魚', icon: '🐟' }
         ],
         '蛋類': [
@@ -204,7 +209,7 @@
             { name: '蝦', icon: '🦐' }, { name: '清酒煮蜆', icon: '🐚' }
         ],
         '湯類': [
-            { name: '西洋菜湯', icon: '🥬' }, { name: '紅(青)粟米蘿蔔湯', icon: '🌽' }, { name: '湯包', icon: '🥣' }
+            { name: '西洋菜湯', icon: '🥬' }, { name: '紅(青)串米蘿蔔湯', icon: '🌽' }, { name: '湯包', icon: '🥣' }
         ],
         '煲類': [
             { name: '雞煲', icon: '🥘' }, { name: '羊腩煲', icon: '🐑' }
@@ -212,7 +217,7 @@
         '其他': [
             { name: 'PIZZA', icon: '🍕' }, { name: 'CP雞翼', icon: '🍗' }, { name: '脆香雞翼', icon: '🍟' },
             { name: 'KFC', icon: '🍗' }, { name: '麥記', icon: '🍔' }, { name: '米線', icon: '🍜' },
-            { name: '壽司', icon: '🍣' }, { name: '點心', icon: '🥟' },
+            { name: '壽司', icon: '🍣' }, { name: '點心', icon: '🥟' }, { name: '燒賣', icon: '🥟' }, 
             { name: '薑醋', icon: '🫚' }, { name: '出街食', icon: '🏢' }
         ]
     };
@@ -313,7 +318,7 @@
 
         fetch(SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors', // 避免跨網域問題
+            mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         }).then(() => console.log('雲端備份請求已發送'));
@@ -340,3 +345,5 @@
 
     init();
 </script>
+</body>
+</html>
