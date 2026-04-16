@@ -182,7 +182,7 @@
 
 <script>
     // ⚠️ 請在此處貼上您的 Google Apps Script 網頁應用程式網址
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby9UTauFeMxpSZKMlTrsmbbN3G7wj9NHD3lM_WGs_aJhbeVZ8FHdhFv2SSeBTGEEkE2LQ/exec'; 
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzSPYcXiR9x_Jr80n9Py03LzHmNT-yYq5RXXE-4nJ_VY0kzPGL-nGoHcovNQWZ8cf6HPg/exec'; 
 
     const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
     
@@ -308,7 +308,7 @@
         }
     }
 
-    function saveData() {
+   function saveData() {
         const data = {};
         document.querySelectorAll('.slot').forEach(slot => {
             data[slot.id] = slot.dataset.foodName ? { name: slot.dataset.foodName, icon: slot.dataset.foodIcon } : null;
@@ -316,15 +316,13 @@
 
         localStorage.setItem('dinnerData_v4', JSON.stringify(data));
 
-        // 簡化版的傳送方式
+        // 使用最原始的 stringify 傳送
         fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
-            body: JSON.stringify(data) // 直接傳送字串
+            body: JSON.stringify(data)
         }).then(() => {
-            console.log('已嘗試同步至雲端');
-        }).catch(err => {
-            console.error('同步失敗：', err);
+            console.log('同步請求已發送');
         });
     }
 
