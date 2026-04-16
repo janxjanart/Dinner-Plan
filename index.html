@@ -184,12 +184,14 @@
     <div class="food-menu" id="menu"></div>
 
 <script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby9UTauFeMxpSZKMlTrsmbbN3G7wj9NHD3lM_WGs_aJhbeVZ8FHdhFv2SSeBTGEEkE2LQ/exec'; // ⚠️ 記得替換這裡
+
     const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
     
     const foodCategories = {
         '肉類': [
             { name: '黑椒豬扒', icon: '🥩' }, { name: '洋蔥豬扒', icon: '🧅' }, { name: '蒸排骨', icon: '🍲' },
-            { name: '豆豉蒸排骨', icon: '🥘' }, { name: '南瓜炆排骨', icon: '🎃' }, { name: '薯仔炆雞翼', icon: '🍗' },
+            { name: '豆豉蒸排骨', icon: '🥘' }, { name: '南瓜炆排骨', icon: '🎃' }, { name: '薯仔炆雞翼', icon: '🥔' },
             { name: '蒜蓉蜜糖雞翼', icon: '🍯' }, { name: '煎雞翼', icon: '🍗' }, { name: '瑞士汁雞翼', icon: '🍲' },
             { name: '栗子燜雞翼', icon: '🌰' }, { name: '蒸肉餅', icon: '🧆' }, { name: '煎肉餅', icon: '🍳' }, 
             { name: '雲耳金針蒸雞', icon: '🍄' }
@@ -217,7 +219,7 @@
         '其他': [
             { name: 'PIZZA', icon: '🍕' }, { name: 'CP雞翼', icon: '🍗' }, { name: '脆香雞翼', icon: '🍟' },
             { name: 'KFC', icon: '🍗' }, { name: '麥記', icon: '🍔' }, { name: '米線', icon: '🍜' },
-            { name: '壽司', icon: '🍣' }, { name: '點心', icon: '🥟' }, { name: '燒賣', icon: '🥟' }, 
+            { name: '壽司', icon: '🍣' }, { name: '點心', icon: '🥟' },
             { name: '薑醋', icon: '🫚' }, { name: '出街食', icon: '🏢' }
         ]
     };
@@ -308,45 +310,40 @@
         }
     }
 
-    function exportData() {
-        const data = localStorage.getItem('dinnerData_v4');
-        if (!data) return alert("目前沒有計畫可以分享喔！");
-        const encodedData = btoa(unescape(encodeURIComponent(data)));
-        navigator.clipboard.writeText(encodedData).then(() => {
-            alert("計畫碼已複製！請發給家人貼上。");
-        });
-    }
-
-    function importData() {
-        const code = prompt("請貼上家人分享的計畫碼：");
-        if (code) {
-            try {
-                const decodedData = decodeURIComponent(escape(atob(code)));
-                localStorage.setItem('dinnerData_v4', decodedData);
-                location.reload();
-            } catch (e) {
-                alert("計畫碼格式錯誤！");
-            }
-        }
-    }
-
     function saveData() {
         const data = {};
         document.querySelectorAll('.slot').forEach(slot => {
             data[slot.id] = slot.dataset.foodName ? { name: slot.dataset.foodName, icon: slot.dataset.foodIcon } : null;
         });
+
         localStorage.setItem('dinnerData_v4', JSON.stringify(data));
+
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors', // 避免跨網域問題
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(() => console.log('雲端備份請求已發送'));
     }
 
     function loadData() {
-        const saved = localStorage.getItem('dinnerData_v4');
-        if (saved) {
-            const data = JSON.parse(saved);
-            for (let id in data) if (data[id]) updateSlot(id, data[id]);
-        }
+        fetch(SCRIPT_URL)
+        .then(response => response.json())
+        .then(data => {
+            if (data && Object.keys(data).length > 0) {
+                for (let id in data) if (data[id]) updateSlot(id, data[id]);
+                localStorage.setItem('dinnerData_v4', JSON.stringify(data));
+            }
+        })
+        .catch(err => {
+            console.log('正在讀取本地存檔...');
+            const saved = localStorage.getItem('dinnerData_v4');
+            if (saved) {
+                const localData = JSON.parse(saved);
+                for (let id in localData) if (localData[id]) updateSlot(id, localData[id]);
+            }
+        });
     }
 
     init();
 </script>
-</body>
-</html>
