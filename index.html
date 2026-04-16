@@ -104,6 +104,7 @@
             justify-content: center;
             cursor: pointer;
             overflow: hidden;
+            position: relative;
         }
 
         .slot.active {
@@ -183,7 +184,6 @@
     <div class="food-menu" id="menu"></div>
 
 <script>
-    // ⚠️ 請填入您的 Google Apps Script 網址
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzSPYcXiR9x_Jr80n9Py03LzHmNT-yYq5RXXE-4nJ_VY0kzPGL-nGoHcovNQWZ8cf6HPg/exec'; 
 
     const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
@@ -219,8 +219,8 @@
         '其他': [
             { name: 'PIZZA', icon: '🍕' }, { name: 'CP雞翼', icon: '🍗' }, { name: '脆香雞翼', icon: '🍟' },
             { name: 'KFC', icon: '🍗' }, { name: '麥記', icon: '🍔' }, { name: '米線', icon: '🍜' },
-            { name: '壽司', icon: '🍣' }, { name: '點心', icon: '🥟' }, { name: '燒賣', icon: '🥟' }, 
-            { name: '薑醋', icon: '🫚' }, { name: '出街食', icon: '🏢' }
+            { name: '壽司', icon: '🍣' }, { name: '點心', icon: '🥟' }, 
+            { name: '薑醋', icon: '🥔' }, { name: '出街食', icon: '🏢' }
         ]
     };
 
@@ -236,10 +236,10 @@
             dayCard.innerHTML = `
                 <div class="day-label">${day}</div>
                 <div class="slot-container">
-                    <div class="slot" id="slot-${dIdx}-0" onclick="selectSlot('slot-${dIdx}-0')"></div>
-                    <div class="slot" id="slot-${dIdx}-1" onclick="selectSlot('slot-${dIdx}-1')"></div>
-                    <div class="slot" id="slot-${dIdx}-2" onclick="selectSlot('slot-${dIdx}-2')"></div>
-                    <div class="slot" id="slot-${dIdx}-3" onclick="selectSlot('slot-${dIdx}-3')"></div>
+                    <div class="slot" id="slot-${dIdx}-0" onclick="handleSlotClick('slot-${dIdx}-0')"></div>
+                    <div class="slot" id="slot-${dIdx}-1" onclick="handleSlotClick('slot-${dIdx}-1')"></div>
+                    <div class="slot" id="slot-${dIdx}-2" onclick="handleSlotClick('slot-${dIdx}-2')"></div>
+                    <div class="slot" id="slot-${dIdx}-3" onclick="handleSlotClick('slot-${dIdx}-3')"></div>
                 </div>
             `;
             planner.appendChild(dayCard);
@@ -264,7 +264,17 @@
         loadData();
     }
 
-    function selectSlot(id) {
+    function handleSlotClick(id) {
+        // 如果點選的是已經選中的格子，則詢問是否清空
+        if (currentSelectedSlot === id) {
+            const slot = document.getElementById(id);
+            if (slot.dataset.foodName && confirm('是否清空此格食物？')) {
+                updateSlot(id, null);
+                saveData();
+                return;
+            }
+        }
+        
         if (currentSelectedSlot) document.getElementById(currentSelectedSlot).classList.remove('active');
         currentSelectedSlot = id;
         document.getElementById(id).classList.add('active');
@@ -289,7 +299,6 @@
         slot.dataset.foodIcon = food.icon;
     }
 
-    // 隨機邏輯抽取：給予日期 index 並填入食物
     function generateDayPlan(dIdx) {
         const meat = foodCategories['肉類'][Math.floor(Math.random() * foodCategories['肉類'].length)];
         const fishOrEggList = [...foodCategories['魚類'], ...foodCategories['蛋類']];
@@ -304,7 +313,6 @@
 
     function randomizeDay() {
         if (!currentSelectedSlot) return alert('請先點選你想隨機的那一天的任何一個格子！');
-        // 從 slot-X-Y 獲取 X (日期 index)
         const dIdx = currentSelectedSlot.split('-')[1];
         generateDayPlan(dIdx);
         saveData();
@@ -319,7 +327,7 @@
     }
 
     function clearAll() {
-        if(confirm("確定要清空嗎？")) {
+        if(confirm("確定要清空整週計畫嗎？")) {
             document.querySelectorAll('.slot').forEach(slot => updateSlot(slot.id, null));
             saveData();
         }
