@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>日系可愛晚餐規劃助手</title>
+    <style>
+        :root {
+            --bg-color: #FFF9F2;
+            --card-bg: #FFFFFF;
+            --primary-pink: #FFD1DC;
+            --primary-blue: #B3E5FC;
+            --primary-green: #C8E6C9;
+            --primary-yellow: #FFF9C4;
+            --text-color: #6D4C41;
+            --border-radius: 20px;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            touch-action: manipulation;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #FF8A80;
+            text-shadow: 2px 2px 0px #fff;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 0px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0px rgba(0,0,0,0.1);
+        }
+
+        .btn-random { background-color: var(--primary-green); color: #2E7D32; }
+        .btn-clear { background-color: var(--primary-pink); color: #C62828; }
+
+        .planner-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 15px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .day-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 10px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+            border: 3px solid var(--primary-yellow);
+        }
+
+        .day-label {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            color: #795548;
+        }
+
+        .slot-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .slot {
+            height: 85px;
+            background: #F5F5F5;
+            border: 2px dashed #DDD;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            overflow: hidden;
+            transition: background 0.3s;
+        }
+
+        .slot.active {
+            border: 2px solid #FFAB91;
+            background: #FFF3E0;
+        }
+
+        .slot .food-icon-display { font-size: 28px; line-height: 1; }
+        .slot .food-name-display { font-size: 11px; margin-top: 4px; color: #8D6E63; font-weight: bold; text-align: center; }
+
+        .food-menu {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: white;
+            padding: 20px;
+            border-top-left-radius: 30px;
+            border-top-right-radius: 30px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+            max-height: 45vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .category-section {
+            margin-bottom: 20px;
+            border-bottom: 2px dashed var(--primary-yellow);
+            padding-bottom: 10px;
+        }
+
+        .category-title {
+            font-weight: bold;
+            color: #FF8A80;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .food-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: flex-start;
+        }
+
+        .food-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 75px;
+            cursor: pointer;
+        }
+
+        .food-icon {
+            width: 55px; height: 55px;
+            background: var(--primary-blue);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; margin-bottom: 5px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+
+        .food-name { font-size: 11px; text-align: center; color: #5D4037; }
+        .spacer { height: 50vh; }
+    </style>
+</head>
+<body>
+
+    <h1>🍴 每日晚餐小幫手</h1>
+
+    <div class="controls">
+        <button class="btn-random" onclick="randomize()">✨ 隨機安排</button>
+        <button class="btn-clear" onclick="clearAll()">🧹 清空全部</button>
+    </div>
+
+    <div class="planner-grid" id="planner"></div>
+    <div class="spacer"></div>
+    <div class="food-menu" id="menu"></div>
+
+<script>
+    const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+    
+    const foodCategories = {
+        '肉類': [
+            { name: '黑椒豬扒', icon: '🥩' }, { name: '洋蔥豬扒', icon: '🧅' }, { name: '蒸排骨', icon: '🥣' },
+            { name: '豆豉蒸排骨', icon: '🥘' }, { name: '南瓜炆排骨', icon: '🎃' }, { name: '薯仔炆雞翼', icon: '🍗' },
+            { name: '蒜蓉蜜糖雞翼', icon: '🍯' }, { name: '煎雞翼', icon: '🍳' }, { name: '瑞士汁雞翼', icon: '🍲' },
+            { name: '蒸肉餅', icon: '🧆' }, { name: '煎肉餅', icon: '🥞' }, { name: '雲耳金針蒸雞', icon: '🍄' },
+            { name: '栗子燜雞', icon: '🌰' }
+        ],
+        '魚類': [
+            { name: '煎三文魚扒/三文魚柳', icon: '🐟' }, { name: '鯇魚腩', icon: '🐡' }, { name: '倉魚', icon: '🐠' },
+            { name: '紅衫魚', icon: '🎏' }, { name: '黃花魚', icon: '🎣' }, { name: '鯖魚', icon: '🍴' }
+        ],
+        '蛋類': [
+            { name: '蒸水蛋', icon: '🥚' }, { name: '蝦仁炒蛋', icon: '🍤' }, { name: '午餐肉炒蛋', icon: '🥓' }
+        ],
+        '菜類': [
+            { name: '豆角炒肉碎', icon: '🥒' }, { name: '肉碎茄子', icon: '🍆' }, { name: '炒菜', icon: '🥬' },
+            { name: '烚菜', icon: '🥗' }, { name: '任何菜', icon: '🌿' }
+        ],
+        '海鮮類': [
+            { name: '蝦', icon: '🦐' }, { name: '清酒煮蜆', icon: '🐚' }
+        ],
+        '湯類': [
+            { name: '西洋菜湯', icon: '🥣' }, { name: '紅(青)粟米蘿蔔湯', icon: '🌽' }, { name: '湯包', icon: '📦' }
+        ],
+        '煲類': [
+            { name: '雞煲', icon: '🥘' }, { name: '羊腩煲', icon: '🐑' }
+        ],
+        '其他': [
+            { name: 'PIZZA', icon: '🍕' }, { name: 'CP雞翼', icon: '🍗' }, { name: '脆香雞翼', icon: '🍟' },
+            { name: 'KFC', icon: '🍗' }, { name: '麥記', icon: '🍔' }, { name: '米線', icon: '🍜' },
+            { name: '壽司', icon: '🍣' }, { name: '點心', icon: '🥟' }, { name: '薑醋', icon: '🥣' },
+            { name: '出街食', icon: '🏢' }
+        ]
+    };
+
+    let currentSelectedSlot = null;
+
+    function init() {
+        const planner = document.getElementById('planner');
+        const menu = document.getElementById('menu');
+
+        days.forEach((day, dIdx) => {
+            const dayCard = document.createElement('div');
+            dayCard.className = 'day-card';
+            dayCard.innerHTML = `
+                <div class="day-label">${day}</div>
+                <div class="slot-container">
+                    <div class="slot" id="slot-${dIdx}-0" onclick="selectSlot('slot-${dIdx}-0')"></div>
+                    <div class="slot" id="slot-${dIdx}-1" onclick="selectSlot('slot-${dIdx}-1')"></div>
+                    <div class="slot" id="slot-${dIdx}-2" onclick="selectSlot('slot-${dIdx}-2')"></div>
+                    <div class="slot" id="slot-${dIdx}-3" onclick="selectSlot('slot-${dIdx}-3')"></div>
+                </div>
+            `;
+            planner.appendChild(dayCard);
+        });
+
+        for (const [cat, items] of Object.entries(foodCategories)) {
+            const section = document.createElement('div');
+            section.className = 'category-section';
+            section.innerHTML = `<div class="category-title">${cat}</div>`;
+            const list = document.createElement('div');
+            list.className = 'food-list';
+            
+            items.forEach(food => {
+                const item = document.createElement('div');
+                item.className = 'food-item';
+                item.onclick = () => pickFood(food);
+                item.innerHTML = `<div class="food-icon">${food.icon}</div><div class="food-name">${food.name}</div>`;
+                list.appendChild(item);
+            });
+            section.appendChild(list);
+            menu.appendChild(section);
+        }
+        loadData();
+    }
+
+    function selectSlot(id) {
+        if (currentSelectedSlot) document.getElementById(currentSelectedSlot).classList.remove('active');
+        currentSelectedSlot = id;
+        document.getElementById(id).classList.add('active');
+    }
+
+    function pickFood(food) {
+        if (!currentSelectedSlot) return alert('請先點選一個格子！');
+        updateSlot(currentSelectedSlot, food);
+        saveData();
+    }
+
+    function updateSlot(slotId, food) {
+        const slot = document.getElementById(slotId);
+        if(!food) {
+            slot.innerHTML = '';
+            delete slot.dataset.foodName;
+            delete slot.dataset.foodIcon;
+            return;
+        }
+        slot.innerHTML = `<div class="food-icon-display">${food.icon}</div><div class="food-name-display">${food.name}</div>`;
+        slot.dataset.foodName = food.name;
+        slot.dataset.foodIcon = food.icon;
+    }
+
+    function randomize() {
+        for (let d = 0; d < 7; d++) {
+            // 1. 肉類
+            const meat = foodCategories['肉類'][Math.floor(Math.random() * foodCategories['肉類'].length)];
+            // 2. 魚或蛋
+            const fishOrEggList = [...foodCategories['魚類'], ...foodCategories['蛋類']];
+            const fishOrEgg = fishOrEggList[Math.floor(Math.random() * fishOrEggList.length)];
+            // 3. 任何菜
+            const veg = foodCategories['菜類'].find(f => f.name === '任何菜');
+            
+            updateSlot(`slot-${d}-0`, meat);
+            updateSlot(`slot-${d}-1`, fishOrEgg);
+            updateSlot(`slot-${d}-2`, veg);
+            updateSlot(`slot-${d}-3`, null); // 第4格漏空
+        }
+        saveData();
+    }
+
+    function clearAll() {
+        if(confirm("確定要清空所有的計畫嗎？")) {
+            document.querySelectorAll('.slot').forEach(slot => updateSlot(slot.id, null));
+            saveData();
+        }
+    }
+
+    function saveData() {
+        const data = {};
+        document.querySelectorAll('.slot').forEach(slot => {
+            data[slot.id] = slot.dataset.foodName ? { name: slot.dataset.foodName, icon: slot.dataset.foodIcon } : null;
+        });
+        localStorage.setItem('dinnerData_v3', JSON.stringify(data));
+    }
+
+    function loadData() {
+        const saved = localStorage.getItem('dinnerData_v3');
+        if (saved) {
+            const data = JSON.parse(saved);
+            for (let id in data) if (data[id]) updateSlot(id, data[id]);
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>
