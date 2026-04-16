@@ -184,9 +184,7 @@
     <div class="food-menu" id="menu"></div>
 
 <script>
-    // --- 配置資訊 ---
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbXp4sfxE4asP5DJ8js0oVUWJAlJiwbhhZ4oihD3bNrRw7WtfRhSk8ef_YL_SxrWNgzsQ/exec'; 
-    const MY_TOKEN = 'my_dInneR_7090'; 
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwiFsosD-pgZ3Z4w2O43aUybF1W4ZBtL0gHGBpX-HHzT8SefAG-e1LHdJ74BICgJIN-AA/exec'; 
 
     const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
     
@@ -228,15 +226,9 @@
 
     let currentSelectedSlot = null;
 
-    // --- 核心功能 ---
     function init() {
         const planner = document.getElementById('planner');
         const menu = document.getElementById('menu');
-
-        if (!planner || !menu) return; // 防止 null 報錯
-
-        planner.innerHTML = '';
-        menu.innerHTML = '';
 
         days.forEach((day, dIdx) => {
             const dayCard = document.createElement('div');
@@ -273,17 +265,19 @@
     }
 
     function handleSlotClick(id) {
-        const slot = document.getElementById(id);
+        // 如果點選的是已經選中的格子，則詢問是否清空
         if (currentSelectedSlot === id) {
+            const slot = document.getElementById(id);
             if (slot.dataset.foodName && confirm('是否清空此格食物？')) {
                 updateSlot(id, null);
                 saveData();
                 return;
             }
         }
+        
         if (currentSelectedSlot) document.getElementById(currentSelectedSlot).classList.remove('active');
         currentSelectedSlot = id;
-        slot.classList.add('active');
+        document.getElementById(id).classList.add('active');
     }
 
     function pickFood(food) {
@@ -294,7 +288,6 @@
 
     function updateSlot(slotId, food) {
         const slot = document.getElementById(slotId);
-        if (!slot) return;
         if(!food) {
             slot.innerHTML = '';
             delete slot.dataset.foodName;
@@ -327,7 +320,9 @@
 
     function randomizeAll() {
         if(!confirm("確定要重新安排整週的晚餐嗎？")) return;
-        for (let d = 0; d < 7; d++) generateDayPlan(d);
+        for (let d = 0; d < 7; d++) {
+            generateDayPlan(d);
+        }
         saveData();
     }
 
@@ -338,38 +333,30 @@
         }
     }
 
-    // --- 資料同步 ---
     function saveData() {
-        const foodData = {};
+        const data = {};
         document.querySelectorAll('.slot').forEach(slot => {
-            foodData[slot.id] = slot.dataset.foodName ? { name: slot.dataset.foodName, icon: slot.dataset.foodIcon } : null;
+            data[slot.id] = slot.dataset.foodName ? { name: slot.dataset.foodName, icon: slot.dataset.foodIcon } : null;
         });
-        localStorage.setItem('dinnerData_v4', JSON.stringify(foodData));
-
-        const payload = {
-            auth: MY_TOKEN,
-            data: foodData
-        };
+        localStorage.setItem('dinnerData_v4', JSON.stringify(data));
 
         fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
-            body: JSON.stringify(payload)
-        }).then(() => console.log('已發送同步請求'));
+            body: JSON.stringify(data)
+        }).then(() => console.log('同步請求已發送'));
     }
 
     function loadData() {
-        fetch(SCRIPT_URL + '?token=' + MY_TOKEN + '&t=' + new Date().getTime())
+        fetch(SCRIPT_URL + '?t=' + new Date().getTime())
         .then(response => response.json())
         .then(data => {
             if (data && Object.keys(data).length > 0) {
-                document.querySelectorAll('.slot').forEach(slot => updateSlot(slot.id, null));
                 for (let id in data) if (data[id]) updateSlot(id, data[id]);
                 localStorage.setItem('dinnerData_v4', JSON.stringify(data));
             }
         })
         .catch(err => {
-            console.log('讀取本地暫存中...');
             const saved = localStorage.getItem('dinnerData_v4');
             if (saved) {
                 const localData = JSON.parse(saved);
@@ -378,12 +365,7 @@
         });
     }
 
-    // 確保 DOM 載入後再執行
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
+    init();
 </script>
 </body>
 </html>
