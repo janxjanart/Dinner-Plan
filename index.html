@@ -59,7 +59,8 @@
             box-shadow: 0 1px 0px rgba(0,0,0,0.1);
         }
 
-        .btn-random { background-color: var(--primary-green); color: #2E7D32; }
+        .btn-random-all { background-color: var(--primary-green); color: #2E7D32; }
+        .btn-random-day { background-color: var(--primary-blue); color: #0277BD; }
         .btn-clear { background-color: var(--primary-pink); color: #C62828; }
 
         .planner-grid {
@@ -172,7 +173,8 @@
     <h1>🍴 每日晚餐小幫手</h1>
 
     <div class="controls">
-        <button class="btn-random" onclick="randomize()">✨ 隨機安排</button>
+        <button class="btn-random-day" onclick="randomizeDay()">🎲 單日隨機</button>
+        <button class="btn-random-all" onclick="randomizeAll()">✨ 全部隨機</button>
         <button class="btn-clear" onclick="clearAll()">🧹 清空全部</button>
     </div>
 
@@ -181,7 +183,7 @@
     <div class="food-menu" id="menu"></div>
 
 <script>
-    // ⚠️ 請在此處貼上您的 Google Apps Script 網頁應用程式網址
+    // ⚠️ 請填入您的 Google Apps Script 網址
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzSPYcXiR9x_Jr80n9Py03LzHmNT-yYq5RXXE-4nJ_VY0kzPGL-nGoHcovNQWZ8cf6HPg/exec'; 
 
     const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
@@ -195,7 +197,7 @@
             { name: '雲耳金針蒸雞', icon: '🍄' }, { name: '栗子燜雞', icon: '🌰' }
         ],
         '魚類': [
-            { name: '煎三文魚扒/柳', icon: '🐟' }, { name: '鯇魚腩', icon: '🐡' }, { name: '倉魚', icon: '🐠' },
+            { name: '煎三文魚扒/三文魚柳', icon: '🐟' }, { name: '鯇魚腩', icon: '🐡' }, { name: '倉魚', icon: '🐠' },
             { name: '紅衫魚', icon: '🎏' }, { name: '黃花魚', icon: '🎣' }, { name: '鯖魚', icon: '🐟' }
         ],
         '蛋類': [
@@ -269,7 +271,7 @@
     }
 
     function pickFood(food) {
-        if (!currentSelectedSlot) return alert('請先點選格子！');
+        if (!currentSelectedSlot) return alert('請先點選一個格子！');
         updateSlot(currentSelectedSlot, food);
         saveData();
     }
@@ -287,16 +289,31 @@
         slot.dataset.foodIcon = food.icon;
     }
 
-    function randomize() {
+    // 隨機邏輯抽取：給予日期 index 並填入食物
+    function generateDayPlan(dIdx) {
+        const meat = foodCategories['肉類'][Math.floor(Math.random() * foodCategories['肉類'].length)];
+        const fishOrEggList = [...foodCategories['魚類'], ...foodCategories['蛋類']];
+        const fishOrEgg = fishOrEggList[Math.floor(Math.random() * fishOrEggList.length)];
+        const veg = foodCategories['菜類'].find(f => f.name === '任何菜');
+        
+        updateSlot(`slot-${dIdx}-0`, meat);
+        updateSlot(`slot-${dIdx}-1`, fishOrEgg);
+        updateSlot(`slot-${dIdx}-2`, veg);
+        updateSlot(`slot-${dIdx}-3`, null);
+    }
+
+    function randomizeDay() {
+        if (!currentSelectedSlot) return alert('請先點選你想隨機的那一天的任何一個格子！');
+        // 從 slot-X-Y 獲取 X (日期 index)
+        const dIdx = currentSelectedSlot.split('-')[1];
+        generateDayPlan(dIdx);
+        saveData();
+    }
+
+    function randomizeAll() {
+        if(!confirm("確定要重新安排整週的晚餐嗎？")) return;
         for (let d = 0; d < 7; d++) {
-            const meat = foodCategories['肉類'][Math.floor(Math.random() * foodCategories['肉類'].length)];
-            const fishOrEggList = [...foodCategories['魚類'], ...foodCategories['蛋類']];
-            const fishOrEgg = fishOrEggList[Math.floor(Math.random() * fishOrEggList.length)];
-            const veg = foodCategories['菜類'].find(f => f.name === '任何菜');
-            updateSlot(`slot-${d}-0`, meat);
-            updateSlot(`slot-${d}-1`, fishOrEgg);
-            updateSlot(`slot-${d}-2`, veg);
-            updateSlot(`slot-${d}-3`, null);
+            generateDayPlan(d);
         }
         saveData();
     }
@@ -308,45 +325,30 @@
         }
     }
 
-   function saveData() {
+    function saveData() {
         const data = {};
         document.querySelectorAll('.slot').forEach(slot => {
             data[slot.id] = slot.dataset.foodName ? { name: slot.dataset.foodName, icon: slot.dataset.foodIcon } : null;
         });
-
         localStorage.setItem('dinnerData_v4', JSON.stringify(data));
 
-        // 使用最原始的 stringify 傳送
         fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
             body: JSON.stringify(data)
-        }).then(() => {
-            console.log('同步請求已發送');
-        });
+        }).then(() => console.log('同步請求已發送'));
     }
 
- function loadData() {
-        // 加入時間戳記避免瀏覽器讀取舊快取
+    function loadData() {
         fetch(SCRIPT_URL + '?t=' + new Date().getTime())
-        .then(response => {
-            if (!response.ok) throw new Error('網路回應不正確');
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             if (data && Object.keys(data).length > 0) {
-                // 清空目前畫面
-                document.querySelectorAll('.slot').forEach(slot => updateSlot(slot.id, null));
-                // 填入新資料
-                for (let id in data) {
-                    if (data[id]) updateSlot(id, data[id]);
-                }
+                for (let id in data) if (data[id]) updateSlot(id, data[id]);
                 localStorage.setItem('dinnerData_v4', JSON.stringify(data));
-                console.log('雲端資料同步完成');
             }
         })
         .catch(err => {
-            console.log('無法連接雲端，讀取本地存檔...', err);
             const saved = localStorage.getItem('dinnerData_v4');
             if (saved) {
                 const localData = JSON.parse(saved);
