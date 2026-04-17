@@ -267,21 +267,26 @@
     }
 
 function handleSlotClick(id) {
-    const slotIndex = slots.findIndex(s => s.id === id);
-    const slot = slots[slotIndex];
+    const slot = document.getElementById(id);
 
-    // 如果嗰格已經有食物 (selected 為 true)
-    if (slot.selected) {
-        // 直接取消，唔再彈出 confirm 視窗
-        slot.selected = false;
-        slot.user = "";
+    // 如果呢格已經有食物名稱 (代表唔係空位)
+    if (slot.dataset.foodName) {
+        // 直接執行清空、儲存，唔使問 confirm
+        updateSlot(id, null);
+        saveData();
         
-        // 記得要叫 render 函式去更新畫面 (視乎你原本 code 嘅名)
-        renderSlots(); 
-    } else {
-        // 如果係空白格，就執行原本「揀食物」嘅邏輯
-        showFoodMenu(id); 
+        // 取消返嗰格嘅「選取中」黃框 (如果有 active class)
+        slot.classList.remove('active');
+        currentSelectedSlot = null;
+        return;
     }
+    
+    // 以下係原本「選取空位」嘅邏輯
+    if (currentSelectedSlot) {
+        document.getElementById(currentSelectedSlot).classList.remove('active');
+    }
+    currentSelectedSlot = id;
+    document.getElementById(id).classList.add('active');
 }
 
     function pickFood(food) {
