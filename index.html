@@ -266,19 +266,23 @@
         loadData();
     }
 
-    function handleSlotClick(id) {
-        if (currentSelectedSlot === id) {
-            const slot = document.getElementById(id);
-            if (slot.dataset.foodName && confirm('是否清空此格食物？')) {
-                updateSlot(id, null);
-                saveData();
-                return;
-            }
-        }
-        if (currentSelectedSlot) document.getElementById(currentSelectedSlot).classList.remove('active');
-        currentSelectedSlot = id;
-        document.getElementById(id).classList.add('active');
+function handleSlotClick(id) {
+    const slotIndex = slots.findIndex(s => s.id === id);
+    const slot = slots[slotIndex];
+
+    // 如果嗰格已經有食物 (selected 為 true)
+    if (slot.selected) {
+        // 直接取消，唔再彈出 confirm 視窗
+        slot.selected = false;
+        slot.user = "";
+        
+        // 記得要叫 render 函式去更新畫面 (視乎你原本 code 嘅名)
+        renderSlots(); 
+    } else {
+        // 如果係空白格，就執行原本「揀食物」嘅邏輯
+        showFoodMenu(id); 
     }
+}
 
     function pickFood(food) {
         if (!currentSelectedSlot) return alert('請先點選一個格子！');
