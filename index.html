@@ -123,7 +123,7 @@
             border-top-left-radius: 30px;
             border-top-right-radius: 30px;
             box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
-            max-height: 22vh;
+            max-height: 33.75vh;
             overflow-y: auto;
             z-index: 100;
         }
@@ -184,11 +184,13 @@
     <div class="food-menu" id="menu"></div>
 
 <script>
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwiFsosD-pgZ3Z4w2O43aUybF1W4ZBtL0gHGBpX-HHzT8SefAG-e1LHdJ74BICgJIN-AA/exec'; 
+    // --- 關鍵配置 ---
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwdnuW_FYaGs2aa_eQOUP--PIsX4ndZVQ_yZbceEkGj_fOV27rNynhvuPwIBGKYRmIXbg/exec'; 
+    const MY_TOKEN = 'my_dInneR_7090'; 
 
     const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
     
-    const foodCategories = {
+     const foodCategories = {
         '肉類': [
             { name: '黑椒豬扒', icon: '🥩' }, { name: '洋蔥豬扒', icon: '🧅' }, { name: '蒸排骨', icon: '🍲' },
             { name: '豆豉蒸排骨', icon: '🥘' }, { name: '南瓜炆排骨', icon: '🎃' }, { name: '薯仔炆雞翼', icon: '🥔' },
@@ -265,7 +267,6 @@
     }
 
     function handleSlotClick(id) {
-        // 如果點選的是已經選中的格子，則詢問是否清空
         if (currentSelectedSlot === id) {
             const slot = document.getElementById(id);
             if (slot.dataset.foodName && confirm('是否清空此格食物？')) {
@@ -274,7 +275,6 @@
                 return;
             }
         }
-        
         if (currentSelectedSlot) document.getElementById(currentSelectedSlot).classList.remove('active');
         currentSelectedSlot = id;
         document.getElementById(id).classList.add('active');
@@ -304,7 +304,6 @@
         const fishOrEggList = [...foodCategories['魚類'], ...foodCategories['蛋類']];
         const fishOrEgg = fishOrEggList[Math.floor(Math.random() * fishOrEggList.length)];
         const veg = foodCategories['菜類'].find(f => f.name === '任何菜');
-        
         updateSlot(`slot-${dIdx}-0`, meat);
         updateSlot(`slot-${dIdx}-1`, fishOrEgg);
         updateSlot(`slot-${dIdx}-2`, veg);
@@ -320,9 +319,7 @@
 
     function randomizeAll() {
         if(!confirm("確定要重新安排整週的晚餐嗎？")) return;
-        for (let d = 0; d < 7; d++) {
-            generateDayPlan(d);
-        }
+        for (let d = 0; d < 7; d++) generateDayPlan(d);
         saveData();
     }
 
@@ -333,39 +330,40 @@
         }
     }
 
+    // --- 同步邏輯 (帶 Token) ---
     function saveData() {
-        const data = {};
+        const foodData = {};
         document.querySelectorAll('.slot').forEach(slot => {
-            data[slot.id] = slot.dataset.foodName ? { name: slot.dataset.foodName, icon: slot.dataset.foodIcon } : null;
+            foodData[slot.id] = slot.dataset.foodName ? { name: slot.dataset.foodName, icon: slot.dataset.foodIcon } : null;
         });
-        localStorage.setItem('dinnerData_v4', JSON.stringify(data));
+
+        const payload = {
+            auth: MY_TOKEN,
+            data: foodData
+        };
 
         fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
-            body: JSON.stringify(data)
+            body: JSON.stringify(payload)
         }).then(() => console.log('同步請求已發送'));
     }
 
     function loadData() {
-        fetch(SCRIPT_URL + '?t=' + new Date().getTime())
+        fetch(SCRIPT_URL + '?token=' + MY_TOKEN + '&t=' + new Date().getTime())
         .then(response => response.json())
         .then(data => {
             if (data && Object.keys(data).length > 0) {
                 for (let id in data) if (data[id]) updateSlot(id, data[id]);
-                localStorage.setItem('dinnerData_v4', JSON.stringify(data));
             }
         })
         .catch(err => {
-            const saved = localStorage.getItem('dinnerData_v4');
-            if (saved) {
-                const localData = JSON.parse(saved);
-                for (let id in localData) if (localData[id]) updateSlot(id, localData[id]);
-            }
+            console.log('讀取雲端失敗或權限不足');
         });
     }
 
-    init();
+    // 啟動程式
+    window.onload = init;
 </script>
 </body>
 </html>
